@@ -1,6 +1,8 @@
 # Blockchain
 Este proyecto implementa una simulación funcional de un sistema blockchain completo con su propia criptomoneda
 
+**Prueba el simulador aquí**: [https://blockchain-kcsg3qqq3dafr2kxsblyd7.streamlit.app/](https://blockchain-kcsg3qqq3dafr2kxsblyd7.streamlit.app/)
+
 ## Funcionalidades Principales
 
 - **Creación de wallets:** Con claves pública y privada generadas mediante criptografía `ecdsa`.
