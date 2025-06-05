@@ -24,7 +24,7 @@ if st.button("Agregar nuevo usuario"):
 
 # Mostrar los wallets creados
 if st.session_state.wallets:
-    for wallet in st.session_state.wallets.values():
+    for addr, wallet in st.session_state.wallets.values():
         keys = wallet.get_keys()
         with st.expander(f"👤 {keys['nombre']}"):
             st.text(f"🔐 Clave privada:\n{keys['clave_privada']}")
