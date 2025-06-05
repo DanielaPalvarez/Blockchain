@@ -6,7 +6,8 @@ from ecdsa import SigningKey, SECP256k1
 
 # Wallet
 class Wallet:
-    def __init__(self):
+    def __init__(self, name=""):
+        self.name = name
         self.private_key = SigningKey.generate(curve=SECP256k1)
         self.public_key = self.private_key.get_verifying_key()
         self.address = hashlib.sha256(self.public_key.to_string()).hexdigest()
@@ -16,10 +17,12 @@ class Wallet:
 
     def get_keys(self):
         return {
-            "private": self.private_key.to_string().hex(),
-            "public": self.public_key.to_string().hex(),
-            "address": self.address
+            "nombre": self.name,
+            "clave_privada": self.private_key.to_string().hex(),
+            "clave_publica": self.public_key.to_string().hex(),
+            "direccion": self.address
         }
+
 
 # Transacciones
 class TransactionInput:

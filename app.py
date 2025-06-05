@@ -8,17 +8,35 @@ if "blockchain" not in st.session_state:
     st.session_state.wallets = {}
     st.session_state.tx_pool = []
 
-st.title("🪙 Simulador de Blockchain con Minería y UTXO")
+st.header("1. Crear Usuarios")
 
-st.header("1. Crear Wallet")
-if st.button("Crear nueva wallet"):
-    wallet = Wallet()
+# Inicializar contador de usuarios
+if "wallet_counter" not in st.session_state:
+    st.session_state.wallet_counter = 0
+
+# Botón para agregar un nuevo usuario
+if st.button("Agregar nuevo usuario"):
+    st.session_state.wallet_counter += 1
+    name = f"Usuario {st.session_state.wallet_counter}"
+    wallet = Wallet(name=name)
     st.session_state.wallets[wallet.address] = wallet
-    st.success(f"Wallet creada: {wallet.address[:15]}...")
+    st.success(f"{name} creado correctamente.")
 
-st.subheader("Wallets disponibles")
-for addr, w in st.session_state.wallets.items():
-    st.code(f"{addr[:60]}...")
+# Mostrar los wallets creados
+if st.session_state.wallets:
+    for wallet in st.session_state.wallets.values():
+        keys = wallet.get_keys()
+        st.markdown(f"### 👤 {keys['nombre']}")
+        st.text(f"🔐 Clave privada:\n{keys['clave_privada']}")
+        st.text(f"🔓 Clave pública:\n{keys['clave_publica']}")
+        st.text(f"🏷️ Dirección:\n{keys['direccion']}")
+else:
+    st.info("No se ha creado ningún usuario aún.")
+
+# Verificación para uso posterior
+if len(st.session_state.wallets) < 2:
+    st.warning("⚠️ Debes tener al menos 2 usuarios para crear transacciones o minar bloques.")
+
 
 st.header("2. Crear Bloque Génesis")
 minero_addr = st.selectbox("Selecciona minero para el bloque génesis", list(st.session_state.wallets.keys()), key="genesis")
