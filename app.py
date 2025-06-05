@@ -7,6 +7,7 @@ if "blockchain" not in st.session_state:
     st.session_state.blockchain = Blockchain()
     st.session_state.wallets = {}
     st.session_state.tx_pool = []
+st.header("Blockchain")
 
 st.header("1. Wallets y claves")
 
@@ -43,7 +44,7 @@ if len(st.session_state.wallets) < 2:
     st.warning("⚠️ Debes tener al menos 2 usuarios para crear transacciones o minar bloques.")
 
 
-st.header("2. Crear Bloque Génesis")
+st.header("2. Transacciones y UTXO")
 minero_addr = st.selectbox("Selecciona minero para el bloque génesis", list(st.session_state.wallets.keys()), key="genesis")
 if st.button("Crear bloque génesis"):
     st.session_state.blockchain.create_genesis_block(minero_addr)
