@@ -26,10 +26,11 @@ if st.button("Agregar nuevo usuario"):
 if st.session_state.wallets:
     for wallet in st.session_state.wallets.values():
         keys = wallet.get_keys()
-        st.markdown(f"### 👤 {keys['nombre']}")
-        st.text(f"🔐 Clave privada:\n{keys['clave_privada']}")
-        st.text(f"🔓 Clave pública:\n{keys['clave_publica']}")
-        st.text(f"🏷️ Dirección:\n{keys['direccion']}")
+        with st.expander(f"👤 {keys['nombre']}"):
+            st.text(f"🔐 Clave privada:\n{keys['clave_privada']}")
+            st.text(f"🔓 Clave pública:\n{keys['clave_publica']}")
+            st.text(f"🏷️ Dirección:\n{keys['direccion']}")
+
 else:
     st.info("No se ha creado ningún usuario aún.")
 
