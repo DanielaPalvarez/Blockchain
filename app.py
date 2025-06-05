@@ -8,7 +8,7 @@ if "blockchain" not in st.session_state:
     st.session_state.wallets = {}
     st.session_state.tx_pool = []
 
-st.header("1. Crear Usuarios")
+st.header("1. Wallets y claves")
 
 # Inicializar contador de usuarios
 if "wallet_counter" not in st.session_state:
