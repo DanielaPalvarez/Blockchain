@@ -24,16 +24,16 @@ if st.button("Agregar nuevo usuario"):
 
 # Mostrar los wallets creados
 if st.session_state.wallets:
-    for addr, wallet in st.session_state.wallets.values():
-        keys = wallet.get_keys()
-        with st.expander(f"👤 {keys['nombre']}"):
-            st.text(f"🔐 Clave privada:\n{keys['clave_privada']}")
-            st.text(f"🔓 Clave pública:\n{keys['clave_publica']}")
-            st.text(f"🏷️ Dirección:\n{keys['direccion']}")
-            if st.button(f"❌ Eliminar {keys['nombre']}", key=f"delete_{addr}"):
-                del st.session_state.wallets[addr]
-                st.success(f"{keys['nombre']} eliminado.")
-                st.experimental_rerun()
+   for addr, wallet in list(st.session_state.wallets.items()):
+    keys = wallet.get_keys()
+    with st.expander(f"👤 {wallet.name}"):
+        st.text(f"🔐 Clave privada:\n{keys['clave_privada']}")
+        st.text(f"🔓 Clave pública:\n{keys['clave_publica']}")
+        st.text(f"🏷️ Dirección:\n{keys['direccion']}")
+        if st.button(f"❌ Eliminar {wallet.name}", key=f"delete_{addr}"):
+            del st.session_state.wallets[addr]
+            st.success(f"{wallet.name} eliminado.")
+            st.experimental_rerun()
 
 else:
     st.info("No se ha creado ningún usuario aún.")
