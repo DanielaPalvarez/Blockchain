@@ -156,7 +156,6 @@ elif opcion == "💰 Balances":
     balances = {}
     for utxo in st.session_state.blockchain.utxo_pool.values():
         balances[utxo.direccion] = balances.get(utxo.direccion, 0) + utxo.cantidad
-s
     data = []
     for addr, monto in balances.items():
         nombre = st.session_state.wallets[addr].name if addr in st.session_state.wallets else "Desconocido"
@@ -174,4 +173,3 @@ elif opcion == "📂 UTXO Pool":
             st.code(f"{k} => {utxo.direccion[:10]}... | {utxo.cantidad} monedas")
     else:
         st.info("🚫 No hay UTXOs disponibles.")
-s
