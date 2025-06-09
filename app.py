@@ -1,9 +1,6 @@
 import streamlit as st
 from blockchain_core import Wallet, Blockchain, Transaction, TransactionInput, TransactionOutput, Miner
 import pandas as pd
-import graphviz
-import json
-import os
 
 # ✅ Esta línea debe ser la primera de Streamlit
 st.set_page_config(page_title="Blockchain Educativa", layout="centered")
@@ -82,14 +79,7 @@ if opcion == "🏠 Inicio":
         st.code(keys['clave_publica'])
         st.markdown("**Dirección**")
         st.code(keys['direccion'])
-elif opcion == "📊 Visualización":
-    st.subheader("Visualización gráfica de la blockchain")
-    dot = graphviz.Digraph()
-    for bloque in st.session_state.blockchain.chain:
-        dot.node(str(bloque.index), f"Bloque {bloque.index}\nHash: {bloque.hash[:8]}...")
-        if bloque.index > 0:
-            dot.edge(str(bloque.index - 1), str(bloque.index))
-    st.graphviz_chart(dot)
+        
 
 # --- USUARIOS ---
 elif opcion == "👤 Usuarios":
