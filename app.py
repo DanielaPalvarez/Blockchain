@@ -3,7 +3,7 @@ from blockchain_core import Wallet, Blockchain, Transaction, TransactionInput, T
 import pandas as pd
 
 # ✅ Esta línea debe ser la primera de Streamlit
-st.set_page_config(page_title="Blockchain Educativa", page_icon="🧱", layout="centered")
+st.set_page_config(page_title="Blockchain Educativa", layout="centered")
 
 # Estilo visual adaptado a modo oscuro
 st.markdown("""
@@ -46,14 +46,14 @@ if "blockchain" not in st.session_state:
 
 st.title("🔐 Proyecto Blockchain Educativa")
 
-st.sidebar.title("📌 Navegación")
+st.sidebar.title("Navegación")
 opcion = st.sidebar.radio("Ir a sección:", [
     "🏠 Inicio", "👤 Usuarios", "💳 Transacciones", "⛏️ Minería", "📦 Blockchain", "💰 Balances", "📂 UTXO Pool"
 ])
 
 # --- INICIO ---
 if opcion == "🏠 Inicio":
-    st.subheader("📚 ¿Cómo funciona esta Blockchain?")
+    st.subheader("¿Cómo funciona esta Blockchain?")
     st.markdown("""
     Este proyecto simula el funcionamiento de una **Blockchain educativa**, ideal para comprender los principios clave de esta tecnología. Aquí aprenderás sobre:
 
@@ -73,18 +73,18 @@ if opcion == "🏠 Inicio":
     if st.session_state.genesis_wallet:
         st.markdown("### 🔐 Credenciales del Usuario Génesis")
         keys = st.session_state.genesis_wallet.get_keys()
-        st.markdown("🔐 **Clave privada**")
+        st.markdown("**Clave privada**")
         st.code(keys['clave_privada'])
-        st.markdown("🔓 **Clave pública**")
+        st.markdown("**Clave pública**")
         st.code(keys['clave_publica'])
-        st.markdown("🏷️ **Dirección**")
+        st.markdown("**Dirección**")
         st.code(keys['direccion'])
 
 # --- USUARIOS ---
 elif opcion == "👤 Usuarios":
     st.subheader("👥 Gestión de Usuarios / Wallets")
 
-    if st.button("➕ Crear nuevo usuario"):
+    if st.button("Crear nuevo usuario"):
         st.session_state.wallet_counter += 1
         name = f"Usuario {st.session_state.wallet_counter}"
         wallet = Wallet(name=name)
@@ -106,13 +106,13 @@ elif opcion == "👤 Usuarios":
             keys = wallet.get_keys()
             saldo = balances.get(addr, 0)
             with st.expander(f"🧾 {wallet.name} | Saldo: {saldo} monedas"):
-                st.markdown("🔐 **Clave privada**")
+                st.markdown("**Clave privada**")
                 st.code(keys['clave_privada'])
-                st.markdown("🔓 **Clave pública**")
+                st.markdown("**Clave pública**")
                 st.code(keys['clave_publica'])
-                st.markdown("🏷️ **Dirección**")
+                st.markdown("**Dirección**")
                 st.code(keys['direccion'])
-                if st.button(f"🗑️ Eliminar {wallet.name}", key=f"del_{addr}"):
+                if st.button(f"Eliminar {wallet.name}", key=f"del_{addr}"):
                     del st.session_state.wallets[addr]
                     st.success(f"{wallet.name} eliminado.")
                     st.rerun()
