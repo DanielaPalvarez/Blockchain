@@ -2,7 +2,7 @@
 import hashlib
 import json
 import time
-from ecdsa import SigningKey, SECP256k1
+from ecdsa import SigningKey, VerifyingKey, SECP256k1, BadSignatureError
 
 # Wallet
 class Wallet:
@@ -24,15 +24,21 @@ class Wallet:
         }
 
 
-# Transacciones
+# --- TRANSACCIONES Y UTXO ---
 class TransactionInput:
-    def __init__(self, txid, index):
+    def __init__(self, txid, index, pubkey=None):
         self.txid = txid
         self.index = index
         self.signature = None
+        self.pubkey = pubkey
 
     def to_dict(self):
-        return {"txid": self.txid, "index": self.index, "firma": self.signature}
+        return {
+            "txid": self.txid,
+            "index": self.index,
+            "firma": self.signature,
+            "pubkey": self.pubkey
+        }
 
 class TransactionOutput:
     def __init__(self, cantidad, direccion):
@@ -40,7 +46,10 @@ class TransactionOutput:
         self.direccion = direccion
 
     def to_dict(self):
-        return {"cantidad": self.cantidad, "direccion": self.direccion}
+        return {
+            "cantidad": self.cantidad,
+            "direccion": self.direccion
+        }
 
 class Transaction:
     def __init__(self, inputs, outputs, fee=0.0):
@@ -61,9 +70,28 @@ class Transaction:
         return hashlib.sha256(data).hexdigest()
 
     def sign_inputs(self, wallet):
+        pubkey = wallet.public_key.to_string().hex()
         for inp in self.inputs:
             message = f"{inp.txid}:{inp.index}".encode()
             inp.signature = wallet.sign(message)
+            inp.pubkey = pubkey
+
+    def verify_inputs(self, utxo_pool):
+        for inp in self.inputs:
+            key = f"{inp.txid}:{inp.index}"
+            utxo = utxo_pool.get(key)
+            if not utxo:
+                return False
+            try:
+                pubkey_bytes = bytes.fromhex(inp.pubkey)
+                pubkey = VerifyingKey.from_string(pubkey_bytes, curve=SECP256k1)
+                message = f"{inp.txid}:{inp.index}".encode()
+                if not pubkey.verify(bytes.fromhex(inp.signature), message):
+                    return False
+            except (BadSignatureError, ValueError):
+                return False
+        return True
+
 
 # Bloques y Blockchain
 class Block:

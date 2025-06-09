@@ -44,39 +44,38 @@ if len(st.session_state.wallets) < 2:
     st.warning("⚠️ Debes tener al menos 2 usuarios para crear transacciones o minar bloques.")
 
 
-st.header("2. Transacciones y UTXO")
-minero_addr = st.selectbox("Selecciona minero para el bloque génesis", list(st.session_state.wallets.keys()), key="genesis")
-if st.button("Crear bloque génesis"):
-    st.session_state.blockchain.create_genesis_block(minero_addr)
-    st.success("Bloque génesis creado y minado con 1000 monedas.")
-
-st.header("3. Crear Transacción")
-sender = st.selectbox("Remitente", list(st.session_state.wallets.keys()), key="sender")
-receiver = st.selectbox("Receptor", list(st.session_state.wallets.keys()), key="receiver")
-amount = st.number_input("Cantidad", min_value=1.0, value=1.0)
-fee = st.number_input("Fee", min_value=0.0, value=1.0)
-
-if st.button("Crear transacción"):
-    utxos = st.session_state.blockchain.utxo_pool
-    inputs, total = [], 0
-    for key, utxo in utxos.items():
-        if utxo.direccion == sender:
-            txid, idx = key.split(":")
-            inputs.append(TransactionInput(txid, int(idx)))
-            total += utxo.cantidad
-            if total >= amount + fee:
-                break
-
-    if total < amount + fee:
-        st.error("Fondos insuficientes.")
+# --- Transacciones ---
+elif opcion == "Transacciones":
+    st.subheader("2. Crear Transacción")
+    if len(st.session_state.wallets) < 2:
+        st.warning("⚠️ Necesitas al menos 2 usuarios para hacer transacciones.")
     else:
-        outputs = [TransactionOutput(amount, receiver)]
-        if total > amount + fee:
-            outputs.append(TransactionOutput(total - amount - fee, sender))
-        tx = Transaction(inputs, outputs, fee)
-        tx.sign_inputs(st.session_state.wallets[sender])
-        st.session_state.tx_pool.append(tx)
-        st.success("Transacción añadida al pool.")
+        sender = st.selectbox("Remitente", list(st.session_state.wallets.keys()), key="sender")
+        receiver = st.selectbox("Receptor", list(st.session_state.wallets.keys()), key="receiver")
+        amount = st.number_input("Cantidad", min_value=1.0, value=1.0)
+        fee = st.number_input("Fee", min_value=0.0, value=1.0)
+
+        if st.button("Crear transacción"):
+            utxos = st.session_state.blockchain.utxo_pool
+            inputs, total = [], 0
+            for key, utxo in utxos.items():
+                if utxo.direccion == sender:
+                    txid, idx = key.split(":")
+                    inputs.append(TransactionInput(txid, int(idx)))
+                    total += utxo.cantidad
+                    if total >= amount + fee:
+                        break
+
+            if total < amount + fee:
+                st.error("Fondos insuficientes.")
+            else:
+                outputs = [TransactionOutput(amount, receiver)]
+                if total > amount + fee:
+                    outputs.append(TransactionOutput(total - amount - fee, sender))
+                tx = Transaction(inputs, outputs, fee)
+                tx.sign_inputs(st.session_state.wallets[sender])
+                st.session_state.tx_pool.append(tx)
+                st.success("Transacción añadida al pool.")
 
 st.header("4. Minar Bloque")
 minero = st.selectbox("Selecciona minero", list(st.session_state.wallets.keys()), key="miner")
