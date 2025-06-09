@@ -3,7 +3,7 @@ from blockchain_core import Wallet, Blockchain, Transaction, TransactionInput, T
 import pandas as pd
 
 # Configuración de la página
-st.set_page_config(page_title="Blockchain Educativa", page_icon="🧱", layout="centered")
+st.set_page_config(page_title="Blockchain Educativa", layout="centered")
 
 # Estilo visual adaptado a modo oscuro
 st.markdown("""
