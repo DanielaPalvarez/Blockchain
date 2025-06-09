@@ -1,10 +1,12 @@
+# --- blockchain_core.py COMPLETO ---
 
 import hashlib
 import json
 import time
+import random
 from ecdsa import SigningKey, VerifyingKey, SECP256k1, BadSignatureError
 
-# Wallet
+# --- WALLET ---
 class Wallet:
     def __init__(self, name=""):
         self.name = name
@@ -22,7 +24,6 @@ class Wallet:
             "clave_publica": self.public_key.to_string().hex(),
             "direccion": self.address
         }
-
 
 # --- TRANSACCIONES Y UTXO ---
 class TransactionInput:
@@ -92,8 +93,7 @@ class Transaction:
                 return False
         return True
 
-
-# Bloques y Blockchain
+# --- BLOQUE Y BLOCKCHAIN ---
 class Block:
     def __init__(self, previous_hash, transactions, nonce=0):
         self.timestamp = time.time()
@@ -115,7 +115,7 @@ class Blockchain:
     def __init__(self):
         self.chain = []
         self.utxo_pool = {}
-        self.difficulty = 2
+        self.difficulty = 4  # PoW con 4 ceros
 
     def create_genesis_block(self, address):
         output = TransactionOutput(1000, address)
@@ -130,18 +130,21 @@ class Blockchain:
         self.chain.append(block)
 
     def mine_block(self, transactions, minero):
+        valid_tx = []
         for tx in transactions:
-            for inp in tx.inputs:
-                key = f"{inp.txid}:{inp.index}"
-                self.utxo_pool.pop(key, None)
-            for i, out in enumerate(tx.outputs):
-                self.utxo_pool[f"{tx.txid}:{i}"] = out
-
-        fee = sum(tx.fee for tx in transactions)
+            if tx.verify_inputs(self.utxo_pool):
+                valid_tx.append(tx)
+                for inp in tx.inputs:
+                    key = f"{inp.txid}:{inp.index}"
+                    self.utxo_pool.pop(key, None)
+                for i, out in enumerate(tx.outputs):
+                    self.utxo_pool[f"{tx.txid}:{i}"] = out
+        fee = sum(tx.fee for tx in valid_tx)
         reward_tx = Transaction([], [TransactionOutput(3 + fee, minero)])
-        block = Block(self.chain[-1].hash, transactions + [reward_tx])
+        block = Block(self.chain[-1].hash, valid_tx + [reward_tx])
         while not block.hash.startswith("0" * self.difficulty):
             block.nonce += 1
             block.hash = block.calculate_hash()
         self.add_block(block)
         return block
+
