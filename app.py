@@ -91,7 +91,6 @@ elif opcion == "👤 Usuarios":
         st.session_state.wallets[wallet.address] = wallet
         st.success(f"✅ {name} creado.")
 
-        # Bloque génesis automático
         if not st.session_state.genesis_created:
             st.session_state.miner.create_genesis_block(wallet.address)
             st.session_state.genesis_created = True
@@ -120,4 +119,85 @@ elif opcion == "👤 Usuarios":
     else:
         st.info("👈 Usa el botón para crear usuarios.")
 
-# El resto del código (Transacciones, Minería, Blockchain, etc.) lo puedo incluir también si lo deseas actualizado.
+# --- TRANSACCIONES ---
+elif opcion == "💳 Transacciones":
+    st.subheader("📨 Crear Transacción")
+    if len(st.session_state.wallets) < 2:
+        st.warning("⚠️ Necesitas al menos 2 usuarios para transaccionar.")
+    else:
+        sender = st.selectbox("📤 Remitente", list(st.session_state.wallets.keys()), key="sender")
+        receiver = st.selectbox("📥 Receptor", list(st.session_state.wallets.keys()), key="receiver")
+        amount = st.number_input("💵 Cantidad a enviar", min_value=1.0, value=1.0)
+        fee = st.number_input("🪙 Fee (comisión de minería)", min_value=0.0, value=1.0)
+
+        saldo = sum(utxo.cantidad for k, utxo in st.session_state.blockchain.utxo_pool.items() if utxo.direccion == sender)
+        if saldo < amount + fee:
+            st.warning("💡 Este usuario no tiene suficientes fondos. Debes minar o usar otro remitente.")
+        else:
+            if st.button("✅ Enviar transacción"):
+                utxos = st.session_state.blockchain.utxo_pool
+                inputs, total = [], 0
+                for key, utxo in utxos.items():
+                    if utxo.direccion == sender:
+                        txid, idx = key.split(":")
+                        inputs.append(TransactionInput(txid, int(idx)))
+                        total += utxo.cantidad
+                        if total >= amount + fee:
+                            break
+
+                outputs = [TransactionOutput(amount, receiver)]
+                if total > amount + fee:
+                    outputs.append(TransactionOutput(total - amount - fee, sender))
+                tx = Transaction(inputs, outputs, fee)
+                tx.sign_inputs(st.session_state.wallets[sender])
+                st.session_state.tx_pool.append(tx)
+                st.success("📩 Transacción añadida al pool.")
+
+# --- MINERÍA ---
+elif opcion == "⛏️ Minería":
+    st.subheader("⚒️ Minar transacciones")
+    if not st.session_state.tx_pool:
+        st.info("No hay transacciones en el pool para minar.")
+    else:
+        miner_address = st.selectbox("Selecciona un minero (dirección de wallet):", list(st.session_state.wallets.keys()))
+        if st.button("🚀 Iniciar minería"):
+            st.session_state.miner.mine(miner_address, st.session_state.tx_pool)
+            st.session_state.tx_pool.clear()
+            st.success("✅ Bloque minado con éxito y recompensas asignadas.")
+
+# --- BLOCKCHAIN ---
+elif opcion == "📦 Blockchain":
+    st.subheader("📜 Visualización de la Blockchain")
+    for bloque in st.session_state.blockchain.chain:
+        with st.expander(f"🧱 Bloque {bloque.index} | Hash: {bloque.hash[:15]}..."):
+            st.write(f"🔗 Anterior: {bloque.previous_hash}")
+            st.write(f"🕒 Timestamp: {bloque.timestamp}")
+            st.write(f"📄 Transacciones: {len(bloque.transactions)}")
+            for tx in bloque.transactions:
+                st.text(tx)
+
+# --- BALANCES ---
+elif opcion == "💰 Balances":
+    st.subheader("📊 Saldos actuales por usuario")
+    balances = {}
+    for utxo in st.session_state.blockchain.utxo_pool.values():
+        balances[utxo.direccion] = balances.get(utxo.direccion, 0) + utxo.cantidad
+
+    df_bal = pd.DataFrame([
+        {"Usuario": st.session_state.wallets[addr].name, "Dirección": addr, "Saldo": bal}
+        for addr, bal in balances.items() if addr in st.session_state.wallets
+    ])
+    st.dataframe(df_bal)
+
+# --- UTXO POOL ---
+elif opcion == "📂 UTXO Pool":
+    st.subheader("📄 UTXO Pool (salidas no gastadas)")
+    data = []
+    for k, utxo in st.session_state.blockchain.utxo_pool.items():
+        data.append({
+            "TxID:Index": k,
+            "Dirección": utxo.direccion,
+            "Cantidad": utxo.cantidad
+        })
+    df_utxo = pd.DataFrame(data)
+    st.dataframe(df_utxo)
