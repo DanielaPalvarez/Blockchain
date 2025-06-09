@@ -44,7 +44,7 @@ if "blockchain" not in st.session_state:
     st.session_state.genesis_created = False
     st.session_state.genesis_wallet = None
 
-st.title("🔐 Proyecto Blockchain Educativa")
+st.title("🔐 Proyecto Blockchain")
 
 st.sidebar.title("Navegación")
 opcion = st.sidebar.radio("Ir a sección:", [
