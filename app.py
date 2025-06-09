@@ -3,7 +3,7 @@ from blockchain_core import Wallet, Blockchain, Transaction, TransactionInput, T
 import pandas as pd
 
 # Configuración de la página
-st.set_page_config(page_title="Blockchain Educativa", layout="centered")
+st.set_page_config(page_title="Blockchain Educativa", page_icon="🧱", layout="centered")
 
 # Estilo visual adaptado a modo oscuro
 st.markdown("""
@@ -40,6 +40,8 @@ if "blockchain" not in st.session_state:
     st.session_state.miner = Miner(st.session_state.blockchain)
     st.session_state.wallets = {}
     st.session_state.tx_pool = []
+    st.session_state.wallet_counter = 0
+    st.session_state.genesis_created = False
 
 st.title("🔐 Proyecto Blockchain Educativa")
 
@@ -70,8 +72,6 @@ if opcion == "🏠 Inicio":
 # --- Usuarios ---
 elif opcion == "👤 Usuarios":
     st.subheader("🔐 Gestión de Wallets")
-    if "wallet_counter" not in st.session_state:
-        st.session_state.wallet_counter = 0
 
     if st.button("➕ Crear nuevo usuario"):
         st.session_state.wallet_counter += 1
@@ -80,10 +80,21 @@ elif opcion == "👤 Usuarios":
         st.session_state.wallets[wallet.address] = wallet
         st.success(f"✅ {name} creado correctamente.")
 
+        # Crear bloque génesis automáticamente con el primer usuario
+        if not st.session_state.genesis_created:
+            st.session_state.miner.create_genesis_block(wallet.address)
+            st.session_state.genesis_created = True
+            st.info(f"🚀 Bloque génesis creado automáticamente para {name} con 1000 monedas.")
+
     if st.session_state.wallets:
+        balances = {}
+        for utxo in st.session_state.blockchain.utxo_pool.values():
+            balances[utxo.direccion] = balances.get(utxo.direccion, 0) + utxo.cantidad
+
         for addr, wallet in list(st.session_state.wallets.items()):
             keys = wallet.get_keys()
-            with st.expander(f"🧾 {wallet.name}"):
+            saldo = balances.get(addr, 0)
+            with st.expander(f"🧾 {wallet.name} | Saldo: {saldo} monedas"):
                 st.code(keys['clave_privada'], language='text')
                 st.code(keys['clave_publica'], language='text')
                 st.code(keys['direccion'], language='text')
@@ -105,20 +116,22 @@ elif opcion == "💳 Transacciones":
         amount = st.number_input("💵 Cantidad a enviar", min_value=1.0, value=1.0)
         fee = st.number_input("🪙 Fee (comisión de minería)", min_value=0.0, value=1.0)
 
-        if st.button("✅ Enviar transacción"):
-            utxos = st.session_state.blockchain.utxo_pool
-            inputs, total = [], 0
-            for key, utxo in utxos.items():
-                if utxo.direccion == sender:
-                    txid, idx = key.split(":")
-                    inputs.append(TransactionInput(txid, int(idx)))
-                    total += utxo.cantidad
-                    if total >= amount + fee:
-                        break
+        # Verificar si el remitente tiene saldo
+        saldo = sum(utxo.cantidad for k, utxo in st.session_state.blockchain.utxo_pool.items() if utxo.direccion == sender)
+        if saldo < amount + fee:
+            st.warning("💡 Este usuario no tiene suficientes fondos. Debes minar o usar otro remitente.")
+        else:
+            if st.button("✅ Enviar transacción"):
+                utxos = st.session_state.blockchain.utxo_pool
+                inputs, total = [], 0
+                for key, utxo in utxos.items():
+                    if utxo.direccion == sender:
+                        txid, idx = key.split(":")
+                        inputs.append(TransactionInput(txid, int(idx)))
+                        total += utxo.cantidad
+                        if total >= amount + fee:
+                            break
 
-            if total < amount + fee:
-                st.error("🚫 Fondos insuficientes.")
-            else:
                 outputs = [TransactionOutput(amount, receiver)]
                 if total > amount + fee:
                     outputs.append(TransactionOutput(total - amount - fee, sender))
@@ -127,49 +140,3 @@ elif opcion == "💳 Transacciones":
                 st.session_state.tx_pool.append(tx)
                 st.success("📩 Transacción añadida al pool.")
 
-# --- Minería ---
-elif opcion == "⛏️ Minería":
-    st.subheader("⚒️ Proceso de Minería")
-    if not st.session_state.blockchain.chain:
-        st.info("⚠️ No hay bloque génesis. Crea uno primero.")
-        minero_addr = st.selectbox("Selecciona minero para génesis", list(st.session_state.wallets.keys()))
-        if st.button("🧱 Crear bloque génesis"):
-            st.session_state.miner.create_genesis_block(minero_addr)
-            st.success("🚀 Bloque génesis creado con 1000 monedas.")
-    else:
-        minero = st.selectbox("Selecciona minero", list(st.session_state.wallets.keys()), key="miner")
-        if st.button("⛏️ Ejecutar minería"):
-            bloque = st.session_state.miner.mine_new_block(st.session_state.tx_pool, minero)
-            st.session_state.tx_pool = []
-            st.success(f"✅ Bloque minado con hash: {bloque.hash[:20]}...")
-
-# --- Blockchain ---
-elif opcion == "📦 Blockchain":
-    st.subheader("🧱 Cadena de Bloques")
-    for i, b in enumerate(st.session_state.blockchain.chain):
-        with st.expander(f"🔗 Bloque {i}"):
-            st.json(b.to_dict())
-
-# --- Balances ---
-elif opcion == "💰 Balances":
-    st.subheader("💹 Saldos por Usuario")
-    balances = {}
-    for utxo in st.session_state.blockchain.utxo_pool.values():
-        balances[utxo.direccion] = balances.get(utxo.direccion, 0) + utxo.cantidad
-    data = []
-    for addr, monto in balances.items():
-        nombre = st.session_state.wallets[addr].name if addr in st.session_state.wallets else "Desconocido"
-        data.append({"Usuario": nombre, "Dirección": addr[:10] + "...", "Saldo": monto})
-
-    df = pd.DataFrame(data)
-    st.table(df)
-
-# --- UTXO Pool ---
-elif opcion == "📂 UTXO Pool":
-    st.subheader("🔎 Estado del UTXO Pool")
-    utxos = st.session_state.blockchain.utxo_pool
-    if utxos:
-        for k, utxo in utxos.items():
-            st.code(f"{k} => {utxo.direccion[:10]}... | {utxo.cantidad} monedas")
-    else:
-        st.info("🚫 No hay UTXOs disponibles.")
