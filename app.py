@@ -161,9 +161,10 @@ elif opcion == "⛏️ Minería":
     else:
         miner_address = st.selectbox("Selecciona un minero (dirección de wallet):", list(st.session_state.wallets.keys()))
         if st.button("🚀 Iniciar minería"):
-            st.session_state.miner.mine(miner_address, st.session_state.tx_pool)
-            st.session_state.tx_pool.clear()
-            st.success("✅ Bloque minado con éxito y recompensas asignadas.")
+            bloque = st.session_state.miner.mine_new_block(st.session_state.tx_pool, miner_address)
+            st.session_state.tx_pool = []
+            st.success(f"✅ Bloque minado con éxito. Hash: {bloque.hash[:15]}...")
+
 
 # --- BLOCKCHAIN ---
 elif opcion == "📦 Blockchain":
