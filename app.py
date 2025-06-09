@@ -82,7 +82,7 @@ if opcion == "🏠 Inicio":
 
 # --- USUARIOS ---
 elif opcion == "👤 Usuarios":
-    st.subheader("👥 Gestión de Usuarios / Wallets")
+    st.subheader("Gestión de Usuarios / Wallets")
 
     if st.button("Crear nuevo usuario"):
         st.session_state.wallet_counter += 1
@@ -121,7 +121,7 @@ elif opcion == "👤 Usuarios":
 
 # --- TRANSACCIONES ---
 elif opcion == "💳 Transacciones":
-    st.subheader("📨 Crear Transacción")
+    st.subheader("Crear Transacción")
     if len(st.session_state.wallets) < 2:
         st.warning("⚠️ Necesitas al menos 2 usuarios para transaccionar.")
     else:
@@ -155,12 +155,12 @@ elif opcion == "💳 Transacciones":
 
 # --- MINERÍA ---
 elif opcion == "⛏️ Minería":
-    st.subheader("⚒️ Minar transacciones")
+    st.subheader(" Minar transacciones")
     if not st.session_state.tx_pool:
         st.info("No hay transacciones en el pool para minar.")
     else:
         miner_address = st.selectbox("Selecciona un minero (dirección de wallet):", list(st.session_state.wallets.keys()))
-        if st.button("🚀 Iniciar minería"):
+        if st.button("Iniciar minería"):
             bloque = st.session_state.miner.mine_new_block(st.session_state.tx_pool, miner_address)
             st.session_state.tx_pool = []
             st.success(f"✅ Bloque minado con éxito. Hash: {bloque.hash[:15]}...")
@@ -168,7 +168,7 @@ elif opcion == "⛏️ Minería":
 
 # --- BLOCKCHAIN ---
 elif opcion == "📦 Blockchain":
-    st.subheader("📜 Visualización de la Blockchain")
+    st.subheader("Visualización de la Blockchain")
     for bloque in st.session_state.blockchain.chain:
         with st.expander(f"🧱 Bloque {bloque.index} | Hash: {bloque.hash[:15]}..."):
             st.write(f"🔗 Anterior: {bloque.previous_hash}")
@@ -179,7 +179,7 @@ elif opcion == "📦 Blockchain":
 
 # --- BALANCES ---
 elif opcion == "💰 Balances":
-    st.subheader("📊 Saldos actuales por usuario")
+    st.subheader("Saldos actuales por usuario")
     balances = {}
     for utxo in st.session_state.blockchain.utxo_pool.values():
         balances[utxo.direccion] = balances.get(utxo.direccion, 0) + utxo.cantidad
@@ -192,7 +192,7 @@ elif opcion == "💰 Balances":
 
 # --- UTXO POOL ---
 elif opcion == "📂 UTXO Pool":
-    st.subheader("📄 UTXO Pool (salidas no gastadas)")
+    st.subheader("UTXO Pool (salidas no gastadas)")
     data = []
     for k, utxo in st.session_state.blockchain.utxo_pool.items():
         data.append({
