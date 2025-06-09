@@ -67,6 +67,75 @@ if opcion == "🏠 Inicio":
 
     col1, col2, col3 = st.columns(3)
     col1.metric("🔗 Bloques", len(st.session_state.blockchain.chain))
+import streamlit as st
+from blockchain_core import Wallet, Blockchain, Transaction, TransactionInput, TransactionOutput, Miner
+import pandas as pd
+
+# Configuración de la página
+st.set_page_config(page_title="Blockchain Educativa", page_icon="🧱", layout="centered")
+
+# Estilo visual adaptado a modo oscuro
+st.markdown("""
+    <style>
+    html, body, [class*="css"]  {
+        background-color: #1e1e1e;
+        color: #f0f0f0;
+    }
+    .stApp {
+        background-color: #1e1e1e;
+    }
+    .stButton > button {
+        background-color: #4CAF50;
+        color: white;
+        border-radius: 8px;
+        padding: 0.5em 1em;
+        font-weight: bold;
+    }
+    .stSidebar {
+        background-color: #2c2c2c;
+    }
+    .stMetric {
+        color: white;
+    }
+    .block-container {
+        padding-top: 2rem;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# Inicialización
+if "blockchain" not in st.session_state:
+    st.session_state.blockchain = Blockchain()
+    st.session_state.miner = Miner(st.session_state.blockchain)
+    st.session_state.wallets = {}
+    st.session_state.tx_pool = []
+    st.session_state.wallet_counter = 0
+    st.session_state.genesis_created = False
+    st.session_state.genesis_wallet = None
+
+st.title("🔐 Proyecto Blockchain Educativa")
+
+st.sidebar.title("📌 Navegación")
+opcion = st.sidebar.radio("Ir a sección:", [
+    "🏠 Inicio", "👤 Usuarios", "💳 Transacciones", "⛏️ Minería", "📦 Blockchain", "💰 Balances", "📂 UTXO Pool"
+])
+
+# --- Inicio ---
+if opcion == "🏠 Inicio":
+    st.subheader("📚 ¿Cómo funciona esta Blockchain?")
+    st.markdown("""
+    Este proyecto simula el funcionamiento de una **Blockchain educativa**, ideal para comprender los principios clave de esta tecnología. Aquí aprenderás sobre:
+
+    - **Wallets (billeteras):** Cada usuario tiene un par de llaves criptográficas y una dirección.
+    - **Transacciones:** Son operaciones entre usuarios, firmadas digitalmente y basadas en el modelo UTXO (salidas no gastadas).
+    - **Bloques:** Agrupan transacciones validadas y están encadenados criptográficamente.
+    - **Minería:** Simula la prueba de trabajo (PoW), donde se recompensa al minero que resuelve un reto computacional.
+
+    Esta aplicación está desarrollada con **Python + Streamlit** y permite una interacción directa con los conceptos clave de forma sencilla y visual.
+    """)
+
+    col1, col2, col3 = st.columns(3)
+    col1.metric("🔗 Bloques", len(st.session_state.blockchain.chain))
     col2.metric("📝 Transacciones en pool", len(st.session_state.tx_pool))
     col3.metric("👤 Usuarios", len(st.session_state.wallets))
 
@@ -76,9 +145,12 @@ if opcion == "🏠 Inicio":
         Este usuario fue creado automáticamente para iniciar la blockchain. Puedes usarlo para hacer tus primeras transacciones:
         """)
         keys = st.session_state.genesis_wallet.get_keys()
-        st.code(f"🔐 Clave privada:\n{keys['clave_privada']}", language='text')
-        st.code(f"🔓 Clave pública:\n{keys['clave_publica']}", language='text')
-        st.code(f"🏷️ Dirección:\n{keys['direccion']}", language='text')
+        st.markdown("🔐 **Clave privada**")
+        st.code(keys['clave_privada'], language='text')
+        st.markdown("🔓 **Clave pública**")
+        st.code(keys['clave_publica'], language='text')
+        st.markdown("🏷️ **Dirección**")
+        st.code(keys['direccion'], language='text')
 
 # --- Usuarios ---
 elif opcion == "👤 Usuarios":
@@ -91,6 +163,7 @@ elif opcion == "👤 Usuarios":
         st.session_state.wallets[wallet.address] = wallet
         st.success(f"✅ {name} creado correctamente.")
 
+        # Crear bloque génesis automáticamente con el primer usuario
         if not st.session_state.genesis_created:
             st.session_state.miner.create_genesis_block(wallet.address)
             st.session_state.genesis_created = True
@@ -106,8 +179,11 @@ elif opcion == "👤 Usuarios":
             keys = wallet.get_keys()
             saldo = balances.get(addr, 0)
             with st.expander(f"🧾 {wallet.name} | Saldo: {saldo} monedas"):
+                st.markdown("🔐 **Clave privada**")
                 st.code(keys['clave_privada'], language='text')
+                st.markdown("🔓 **Clave pública**")
                 st.code(keys['clave_publica'], language='text')
+                st.markdown("🏷️ **Dirección**")
                 st.code(keys['direccion'], language='text')
                 if st.button(f"🗑️ Eliminar {wallet.name}", key=f"delete_{addr}"):
                     del st.session_state.wallets[addr]
@@ -115,37 +191,3 @@ elif opcion == "👤 Usuarios":
                     st.rerun()
     else:
         st.info("👈 Usa el botón para crear un usuario.")
-
-# --- Transacciones ---
-elif opcion == "💳 Transacciones":
-    st.subheader("📨 Crear Transacción")
-    if len(st.session_state.wallets) < 2:
-        st.warning("⚠️ Necesitas al menos 2 usuarios para transaccionar.")
-    else:
-        sender = st.selectbox("📤 Remitente", list(st.session_state.wallets.keys()), key="sender")
-        receiver = st.selectbox("📥 Receptor", list(st.session_state.wallets.keys()), key="receiver")
-        amount = st.number_input("💵 Cantidad a enviar", min_value=1.0, value=1.0)
-        fee = st.number_input("🪙 Fee (comisión de minería)", min_value=0.0, value=1.0)
-
-        saldo = sum(utxo.cantidad for k, utxo in st.session_state.blockchain.utxo_pool.items() if utxo.direccion == sender)
-        if saldo < amount + fee:
-            st.warning("💡 Este usuario no tiene suficientes fondos. Debes minar o usar otro remitente.")
-        else:
-            if st.button("✅ Enviar transacción"):
-                utxos = st.session_state.blockchain.utxo_pool
-                inputs, total = [], 0
-                for key, utxo in utxos.items():
-                    if utxo.direccion == sender:
-                        txid, idx = key.split(":")
-                        inputs.append(TransactionInput(txid, int(idx)))
-                        total += utxo.cantidad
-                        if total >= amount + fee:
-                            break
-
-                outputs = [TransactionOutput(amount, receiver)]
-                if total > amount + fee:
-                    outputs.append(TransactionOutput(total - amount - fee, sender))
-                tx = Transaction(inputs, outputs, fee)
-                tx.sign_inputs(st.session_state.wallets[sender])
-                st.session_state.tx_pool.append(tx)
-                st.success("📩 Transacción añadida al pool.")
