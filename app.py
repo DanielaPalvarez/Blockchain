@@ -42,6 +42,7 @@ if "blockchain" not in st.session_state:
     st.session_state.tx_pool = []
     st.session_state.wallet_counter = 0
     st.session_state.genesis_created = False
+    st.session_state.genesis_wallet = None
 
 st.title("🔐 Proyecto Blockchain Educativa")
 
@@ -69,6 +70,16 @@ if opcion == "🏠 Inicio":
     col2.metric("📝 Transacciones en pool", len(st.session_state.tx_pool))
     col3.metric("👤 Usuarios", len(st.session_state.wallets))
 
+    if st.session_state.genesis_wallet:
+        st.markdown("""
+        ### 🔐 Credenciales del Usuario Génesis
+        Este usuario fue creado automáticamente para iniciar la blockchain. Puedes usarlo para hacer tus primeras transacciones:
+        """)
+        keys = st.session_state.genesis_wallet.get_keys()
+        st.code(f"🔐 Clave privada:\n{keys['clave_privada']}", language='text')
+        st.code(f"🔓 Clave pública:\n{keys['clave_publica']}", language='text')
+        st.code(f"🏷️ Dirección:\n{keys['direccion']}", language='text')
+
 # --- Usuarios ---
 elif opcion == "👤 Usuarios":
     st.subheader("🔐 Gestión de Wallets")
@@ -80,10 +91,10 @@ elif opcion == "👤 Usuarios":
         st.session_state.wallets[wallet.address] = wallet
         st.success(f"✅ {name} creado correctamente.")
 
-        # Crear bloque génesis automáticamente con el primer usuario
         if not st.session_state.genesis_created:
             st.session_state.miner.create_genesis_block(wallet.address)
             st.session_state.genesis_created = True
+            st.session_state.genesis_wallet = wallet
             st.info(f"🚀 Bloque génesis creado automáticamente para {name} con 1000 monedas.")
 
     if st.session_state.wallets:
@@ -116,7 +127,6 @@ elif opcion == "💳 Transacciones":
         amount = st.number_input("💵 Cantidad a enviar", min_value=1.0, value=1.0)
         fee = st.number_input("🪙 Fee (comisión de minería)", min_value=0.0, value=1.0)
 
-        # Verificar si el remitente tiene saldo
         saldo = sum(utxo.cantidad for k, utxo in st.session_state.blockchain.utxo_pool.items() if utxo.direccion == sender)
         if saldo < amount + fee:
             st.warning("💡 Este usuario no tiene suficientes fondos. Debes minar o usar otro remitente.")
@@ -139,4 +149,3 @@ elif opcion == "💳 Transacciones":
                 tx.sign_inputs(st.session_state.wallets[sender])
                 st.session_state.tx_pool.append(tx)
                 st.success("📩 Transacción añadida al pool.")
-
