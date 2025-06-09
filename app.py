@@ -1,9 +1,10 @@
 import streamlit as st
-from blockchain_core import Wallet, Blockchain, Transaction, TransactionInput, TransactionOutput
+from blockchain_core import Wallet, Blockchain, Transaction, TransactionInput, TransactionOutput, Miner
 
 # Inicialización de la blockchain
 if "blockchain" not in st.session_state:
     st.session_state.blockchain = Blockchain()
+    st.session_state.miner = Miner(st.session_state.blockchain)
     st.session_state.wallets = {}
     st.session_state.tx_pool = []
 
@@ -11,7 +12,7 @@ st.title("Proyecto Integrador: Blockchain")
 
 st.sidebar.title("Menú")
 opcion = st.sidebar.radio("Ir a:", [
-    "Inicio", "Usuarios", "Transacciones", "Minería", "Blockchain", "UTXO Pool"
+    "Inicio", "Usuarios", "Transacciones", "Minería", "Blockchain", "Balances", "UTXO Pool"
 ])
 
 # --- Inicio ---
@@ -88,12 +89,12 @@ elif opcion == "Minería":
         st.info("No hay bloque génesis. Selecciona minero para crearlo.")
         minero_addr = st.selectbox("Selecciona minero para bloque génesis", list(st.session_state.wallets.keys()))
         if st.button("Crear bloque génesis"):
-            st.session_state.blockchain.create_genesis_block(minero_addr)
+            st.session_state.miner.create_genesis_block(minero_addr)
             st.success("Bloque génesis creado con 1000 monedas.")
     else:
         minero = st.selectbox("Selecciona minero", list(st.session_state.wallets.keys()), key="miner")
         if st.button("Minar bloque"):
-            bloque = st.session_state.blockchain.mine_block(st.session_state.tx_pool, minero)
+            bloque = st.session_state.miner.mine_new_block(st.session_state.tx_pool, minero)
             st.session_state.tx_pool = []
             st.success(f"Bloque minado con hash: {bloque.hash[:20]}...")
 
@@ -102,17 +103,22 @@ elif opcion == "Blockchain":
     st.subheader("4. Cadena de Bloques")
     for i, b in enumerate(st.session_state.blockchain.chain):
         st.write(f"Bloque {i}")
-        st.json({
-            "hash": b.hash,
-            "prev": b.previous_hash,
-            "nonce": b.nonce,
-            "timestamp": b.timestamp,
-            "txs": [tx.to_dict() if hasattr(tx, "to_dict") else vars(tx) for tx in b.transactions]
-        })
+        st.json(b.to_dict())
+
+# --- Balances ---
+elif opcion == "Balances":
+    st.subheader("5. Saldos Actuales por Usuario")
+    balances = {}
+    for utxo in st.session_state.blockchain.utxo_pool.values():
+        balances[utxo.direccion] = balances.get(utxo.direccion, 0) + utxo.cantidad
+
+    for addr, monto in balances.items():
+        nombre = st.session_state.wallets[addr].name if addr in st.session_state.wallets else "Desconocido"
+        st.write(f"{nombre} ({addr[:10]}...): {monto} monedas")
 
 # --- UTXO Pool ---
 elif opcion == "UTXO Pool":
-    st.subheader("5. UTXO Pool")
+    st.subheader("6. UTXO Pool")
     utxos = st.session_state.blockchain.utxo_pool
     if utxos:
         for k, utxo in utxos.items():

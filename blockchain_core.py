@@ -1,9 +1,6 @@
-# --- blockchain_core.py COMPLETO ---
-
 import hashlib
 import json
 import time
-import random
 from ecdsa import SigningKey, VerifyingKey, SECP256k1, BadSignatureError
 
 # --- WALLET ---
@@ -93,10 +90,11 @@ class Transaction:
                 return False
         return True
 
-# --- BLOQUE Y BLOCKCHAIN ---
+# --- BLOQUES Y BLOCKCHAIN ---
 class Block:
-    def __init__(self, previous_hash, transactions, nonce=0):
-        self.timestamp = time.time()
+    def __init__(self, index, previous_hash, transactions, nonce=0):
+        self.index = index
+        self.timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
         self.transactions = transactions
         self.previous_hash = previous_hash
         self.nonce = nonce
@@ -104,47 +102,73 @@ class Block:
 
     def calculate_hash(self):
         block_data = {
+            "index": self.index,
             "timestamp": self.timestamp,
-            "transactions": [tx.to_dict() if hasattr(tx, "to_dict") else vars(tx) for tx in self.transactions],
+            "transactions": [tx.to_dict() for tx in self.transactions],
             "previous_hash": self.previous_hash,
             "nonce": self.nonce
         }
         return hashlib.sha256(json.dumps(block_data, sort_keys=True).encode()).hexdigest()
 
+    def to_dict(self):
+        return {
+            "index": self.index,
+            "timestamp": self.timestamp,
+            "transactions": [tx.to_dict() for tx in self.transactions],
+            "previous_hash": self.previous_hash,
+            "nonce": self.nonce,
+            "hash": self.hash
+        }
+
 class Blockchain:
     def __init__(self):
         self.chain = []
         self.utxo_pool = {}
-        self.difficulty = 4  # PoW con 4 ceros
-
-    def create_genesis_block(self, address):
-        output = TransactionOutput(1000, address)
-        tx = Transaction([], [output])
-        self.utxo_pool[f"{tx.txid}:0"] = output
-        genesis_block = Block("0", [tx])
-        self.chain.append(genesis_block)
+        self.difficulty = 4
 
     def add_block(self, block):
         if block.previous_hash != self.chain[-1].hash:
-            raise Exception("Hash anterior no coincide.")
+            raise Exception("Hash del bloque anterior no coincide.")
+        if not block.hash.startswith("0" * self.difficulty):
+            raise Exception("No cumple con la dificultad requerida.")
         self.chain.append(block)
 
-    def mine_block(self, transactions, minero):
-        valid_tx = []
-        for tx in transactions:
-            if tx.verify_inputs(self.utxo_pool):
-                valid_tx.append(tx)
-                for inp in tx.inputs:
-                    key = f"{inp.txid}:{inp.index}"
-                    self.utxo_pool.pop(key, None)
-                for i, out in enumerate(tx.outputs):
-                    self.utxo_pool[f"{tx.txid}:{i}"] = out
-        fee = sum(tx.fee for tx in valid_tx)
-        reward_tx = Transaction([], [TransactionOutput(3 + fee, minero)])
-        block = Block(self.chain[-1].hash, valid_tx + [reward_tx])
-        while not block.hash.startswith("0" * self.difficulty):
-            block.nonce += 1
-            block.hash = block.calculate_hash()
-        self.add_block(block)
-        return block
+# --- GÉNESIS Y MINERÍA ---
+class Miner:
+    def __init__(self, blockchain):
+        self.blockchain = blockchain
 
+    def create_genesis_block(self, direccion_inicial):
+        recompensa = Transaction([], [TransactionOutput(1000, direccion_inicial)])
+        bloque_genesis = Block(
+            index=0,
+            previous_hash="0",
+            transactions=[recompensa]
+        )
+        self.blockchain.utxo_pool[f"{recompensa.txid}:0"] = recompensa.outputs[0]
+        self.blockchain.chain.append(bloque_genesis)
+        return bloque_genesis
+
+    def mine_new_block(self, transacciones, direccion_minero):
+        utxo_pool = self.blockchain.utxo_pool
+        validas = []
+        for tx in transacciones:
+            if tx.verify_inputs(utxo_pool):
+                validas.append(tx)
+                for inp in tx.inputs:
+                    utxo_pool.pop(f"{inp.txid}:{inp.index}", None)
+                for i, out in enumerate(tx.outputs):
+                    utxo_pool[f"{tx.txid}:{i}"] = out
+
+        fees = sum(tx.fee for tx in validas)
+        recompensa = Transaction([], [TransactionOutput(3 + fees, direccion_minero)])
+
+        nuevo_index = len(self.blockchain.chain)
+        bloque = Block(nuevo_index, self.blockchain.chain[-1].hash, validas + [recompensa])
+
+        while not bloque.hash.startswith("0000"):
+            bloque.nonce += 1
+            bloque.hash = bloque.calculate_hash()
+
+        self.blockchain.add_block(bloque)
+        return bloque
